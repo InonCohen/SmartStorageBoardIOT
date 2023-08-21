@@ -1,6 +1,6 @@
 /*
  * 
- * All the resources for this project: http://randomnerdtutorials.com/
+ * All the resources for this project: https://randomnerdtutorials.com/
  * Modified by Rui Santos
  * 
  * Created by FILIPEFLOP
@@ -10,8 +10,8 @@
 #include <SPI.h>
 #include <MFRC522.h>
  
-#define SS_PIN 10
-#define RST_PIN 9
+#define SS_PIN 21
+#define RST_PIN 22
 MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance.
  
 void setup() 
@@ -49,7 +49,7 @@ void loop()
   Serial.println();
   Serial.print("Message : ");
   content.toUpperCase();
-  if (content.substring(1) == "B7 41 65 62") //change here the UID of the card/cards that you want to give access
+  if (content.substring(1) == "B7 41 65 62" || content.substring(1) == "59 C5 23 A4") //change here the UID of the card/cards that you want to give access
   {
     Serial.println("Authorized access");
     Serial.println();

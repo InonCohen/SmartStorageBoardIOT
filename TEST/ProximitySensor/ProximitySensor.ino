@@ -8,11 +8,15 @@
 
 #include <ezButton.h>
 
-ezButton mySwitch(17);  // create ezButton object that attach to ESP32 pin GPIO17
+#define SWITCH_PIN 32
+#define LED_PIN 2
+
+ezButton mySwitch(SWITCH_PIN);  // create ezButton object that attach to ESP32 pin GPIO17
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   mySwitch.setDebounceTime(50); // set debounce time to 50 milliseconds
+  pinMode(LED_PIN, OUTPUT);
 }
 
 void loop() {
@@ -29,4 +33,9 @@ void loop() {
     Serial.println("The switch: OFF");
   else
     Serial.println("The switch: ON");
+
+  digitalWrite(LED_PIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+  delay(1000);                       // wait for a second
+  digitalWrite(LED_PIN, LOW);    // turn the LED off by making the voltage LOW
+  delay(1000);           
 }

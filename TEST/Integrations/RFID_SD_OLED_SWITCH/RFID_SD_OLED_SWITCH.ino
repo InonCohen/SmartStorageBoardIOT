@@ -1,3 +1,6 @@
+//Written by Nick Koumaris
+//info@educ8s.tv
+
 #include <MFRC522.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -11,34 +14,38 @@
 
 #define SS_PIN 5
 #define RST_PIN 4
-#define CS_PIN_SD 33
+#define CS_PIN_SD 15
 #define OLED_SDA 21
-#define SWITCH_PIN 32
+#define SWITCH_PIN 35
+#define PROXI_PIN 32
+#define LED_PIN 25
 
 #define TEXT_SIZE 1
 MFRC522 rfid(SS_PIN, RST_PIN); // Instance of the class
 Adafruit_SSD1306 display(OLED_SDA);
 MFRC522::MIFARE_Key key; 
-ezButton mySwitch(SWITCH_PIN);
-
+ezButton mySwitch(33);
 String uidString;
 
-void SwitchLoop(){
+bool SwitchLoop(){
     mySwitch.loop(); // MUST call the loop() function first
 
-  if (mySwitch.isPressed())
-    Serial.println("The switch: OFF -> ON");
-
-  if (mySwitch.isReleased())
+  if (mySwitch.isPressed()){
     Serial.println("The switch: ON -> OFF");
+    Serial.println("The door: OPEN -> CLOSED");
+    return true;
+  }
 
+  if (mySwitch.isReleased()){
+    Serial.println("The switch: OFF -> ON");
+    Serial.println("The switch: CLOSED -> OPEN");
+    return false;
+  }
   int state = mySwitch.getState();
-  if (state != HIGH)
-    Serial.println("The switch: OFF");
-  else
-    Serial.println("The switch: ON");
+  if (state == HIGH)
+    return true;
+  return false;
 }
-
 
 void InitSDCard(){
   if(!SD.begin(CS_PIN_SD)){
@@ -114,13 +121,11 @@ bool readLine(File file, char* line, size_t maxLen) {
 
 void readFile(fs::FS &fs, const char * path){
     Serial.printf("Reading file: %s\n", path);
-
     File file = fs.open(path);
     if(!file){
         Serial.println("Failed to open file for reading");
         return;
     }
-
     Serial.print("Read from file: ");
     while(file.available()){
         Serial.write(file.read());
@@ -130,7 +135,6 @@ void readFile(fs::FS &fs, const char * path){
 
 void writeFile(fs::FS &fs, const char * path, const char * message){
     Serial.printf("Writing file: %s\n", path);
-
     File file = fs.open(path, FILE_WRITE);
     if(!file){
         Serial.println("Failed to open file for writing");
@@ -169,124 +173,148 @@ void deleteFile(fs::FS &fs, const char * path){
     }
 }
 
-void initSD()
+void FillSDinitially()
 {
     listDir(SD, "/", 0);
     clearSD();
     listDir(SD, "/", 0);
     writeFile(SD, "/users.csv", "");
+    appendFile(SD, "/users.csv", "F9 CF C4 A3, Hila Levi, 0\n");
+    appendFile(SD, "/users.csv", "59 C5 23 A4, Mais Fadila, 1\n");
     writeFile(SD, "/items.csv", "");
     appendFile(SD, "/items.csv", "item1, Locker\n");
     writeFile(SD, "/log.txt", "initialize: \n");
     listDir(SD, "/", 0);
 }
 
-void setup() {
+  void InitializeOLED(){
+    display.clearDisplay();
+    display.display();
+    display.setTextColor(WHITE); // or BLACK);
+    display.setTextSize(TEXT_SIZE);
+    display.setCursor(0,0); 
+    display.print("Welcome, Pass tag");
+    display.display();
+  }
+
+  void ReadTagID(String* uid){
+      //Show UID on serial monitor and on OLED
+    Serial.print("UID tag :");
+    byte letter;
+    //fill displayed_card_id
+    for (byte i = 0; i < rfid.uid.size; i++) 
+    {
+      Serial.print(rfid.uid.uidByte[i] < 0x10 ? " 0" : " ");
+      Serial.print(rfid.uid.uidByte[i], HEX);
+      (*uid).concat(String(rfid.uid.uidByte[i] < 0x10 ? " 0" : " "));
+      (*uid).concat(String(rfid.uid.uidByte[i], HEX));
+    }
+  }
+
+  bool CheckUID(String displayed_card_id, String* name_ptr){
+    Serial.println();
+    Serial.print("Message : ");
+    displayed_card_id.toUpperCase();
+    char* file_content = (char*)malloc(100);
+    File file = SD.open("/users.csv");
+    bool authorized = false;
+    while(readLine(file, file_content, file.size())){
+      char* token = strtok(file_content, ",");
+      char *userID;
+      if (token != NULL) {
+      // Extract the content of the first item (column) into uid
+        userID = token;
+      }
+      if (displayed_card_id.substring(1) == userID) //change here the UID of the card/cards that you want to give access
+      {
+         // Move to the next token (second column)
+        token = strtok(NULL, ",");
+        char* userName = token;
+        String user_name_string(userName);
+        user_name_string.trim();
+        *name_ptr = user_name_string;
+        Serial.print("user name is ");
+        Serial.println(userName);
+        Serial.println("Authorized access");
+        display.clearDisplay();
+        display.setCursor(0, 0);
+        display.print("Hello");
+        display.print(userName);
+        display.display();
+        authorized = true;
+        Serial.println();
+        delay(3000);
+        break;
+      }
+    }
+    return authorized;
+  }
+
+  void setup() {
   
   Serial.begin(115200);
   InitSDCard();
   SPI.begin(); // Init SPI bus
   rfid.PCD_Init(); // Init MFRC522 
-  
+  mySwitch.setDebounceTime(50);
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // initialize with the I2C addr 0x3D (for the 128x64)
-  initSD();
-  appendFile(SD, "/users.csv", "B7 41 65 62, Hila Levi, 0\n");
-  appendFile(SD, "/users.csv", "59 C5 23 A4, Mais Fadila, 1\n");
+  FillSDinitially();
   listDir(SD, "/", 0);
   Serial.println("Approximate your card to the reader...");
   // Clear the buffer.
-  display.clearDisplay();
-  display.display();
-  display.setTextColor(WHITE); // or BLACK);
-  display.setTextSize(TEXT_SIZE);
-  display.setCursor(10,0); 
-  display.print("Welcome, Pass tag");
-  display.display();
-  
+  InitializeOLED();  
 }
 
 void loop(){
-  if ( ! rfid.PICC_IsNewCardPresent()) 
-  {
-    return;
-  }
+  if (! rfid.PICC_IsNewCardPresent()) 
+      {
+        return;
+      }
   // Select one of the cards
   if ( ! rfid.PICC_ReadCardSerial()) 
   {
     return;
   }
-  //Show UID on serial monitor
-  Serial.print("UID tag :");
-  String content= "";
-  byte letter;
-  for (byte i = 0; i < rfid.uid.size; i++) 
-  {
-     Serial.print(rfid.uid.uidByte[i] < 0x10 ? " 0" : " ");
-     Serial.print(rfid.uid.uidByte[i], HEX);
-     content.concat(String(rfid.uid.uidByte[i] < 0x10 ? " 0" : " "));
-     content.concat(String(rfid.uid.uidByte[i], HEX));
-  }
-  Serial.println();
-  Serial.print("Message : ");
-  content.toUpperCase();
-  char* file_content = (char*)malloc(100);
-  File file = SD.open("/users.csv");
-  bool authorized = false;
-  while(readLine(file, file_content, file.size())){
-    char* userID = strtok(file_content, ",");
-    if (content.substring(1) == userID) //change here the UID of the card/cards that you want to give access
-    {
-      Serial.println("Authorized access");
-      authorized = true;
-      Serial.println();
-      delay(3000);
-      break;
-    }
-  }
+  String displayed_card_id = "";
+  String user_name;
+  ReadTagID(&displayed_card_id);
+  bool authorized = CheckUID(displayed_card_id, &user_name);
   if (!authorized)  {
-    Serial.println(" Access denied");
+    Serial.println("Access denied");
+    display.clearDisplay();
+    display.setCursor(0,0); 
+    display.print("Access denied");
+    display.display();
     delay(3000);
+    InitializeOLED();
+    return;
   }
-  SwitchLoop();
+  int space_index = user_name.indexOf(' '); // Find the index of the first space
+  String first_name = user_name.substring(0, space_index);
+  while(!SwitchLoop()){
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.print("Hello ");
+    display.println(first_name);
+    display.println("Please open the door");
+    display.display();
+  }
+  while(SwitchLoop()){
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.print("Hello ");
+    display.println(first_name);
+    display.println("Door is open");
+    display.display();
+  }
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("Door is closed");
+    display.print("Good day ");
+    display.println(first_name);
+    display.display();
+    delay(4000);
+    InitializeOLED();
+    return;
 }
 
-void printDec(byte *buffer, byte bufferSize) {
-  for (byte i = 0; i < bufferSize; i++) {
-    Serial.print(buffer[i] < 0x10 ? " 0" : " ");
-    Serial.print(buffer[i], DEC);
-  }
-}
-
-  void clearUID()
-  {
-    display.setTextColor(BLACK); // or BLACK);
-    display.setTextSize(TEXT_SIZE);
-    display.setCursor(30,20); 
-    display.print(uidString);
-    display.display();
-  }
-
-  void printUID()
-  {
-    display.setTextColor(WHITE); // or BLACK);
-    display.setTextSize(TEXT_SIZE);
-    display.setCursor(0,20); 
-    display.print("UID: ");
-    display.setCursor(30,20); 
-    display.print(uidString);
-    display.display();
-  }
-
-  void printUnlockMessage()
-  {    
-    display.setTextColor(WHITE); // or BLACK);
-    display.setTextSize(TEXT_SIZE);
-    display.setCursor(10,0); 
-    display.print("Unlocked");
-    display.display();
-    
-    delay(3000);
-    
-
-
-  }

@@ -385,7 +385,7 @@
 
 #define SS_PIN 5
 #define RST_PIN 4
-#define CS_PIN_SD 33
+#define CS_PIN_SD 15
 #define OLED_SDA 21
 
 #define TEXT_SIZE 1

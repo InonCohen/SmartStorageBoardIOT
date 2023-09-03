@@ -55,14 +55,14 @@ bool DoorChanged(){
 }
 
 void ToolLoop(){
-  // Serial.println("In ToolLoop");
+   Serial.println("In ToolLoop");
   tool_switch.loop(); // MUST call the loop() function first
   for (int i=0;i<TOOLS_NUM;i++){
-    // Serial.println("In for loop");
+    Serial.println("In for loop");
     // Serial.print("i = ");
     // Serial.println(i);
     // Serial.println(current_user_tools[i]);
-    if(current_user_tools[i]==1 || general_tools[i] == 1 ){// if the tool is registered as the user's
+    if(current_user_tools[i]==1 || general_tools[i] == 1 ){// if the tool is registered as the user's or is free
         if (tool_switch.isPressed()){
           Serial.println("The tool switch: ON -> OFF");
           Serial.println("The tool is RETURNED");
@@ -82,7 +82,7 @@ void ToolLoop(){
           // digitalWrite(LED_PIN, LOW); 
           Serial.println("The tool is MISSING");
         }
-        if (state == LOW)
+        else
         {
           digitalWrite(LED_PIN, HIGH);  
           Serial.println("The tool is HERE");
@@ -162,6 +162,39 @@ bool readLine(File file, char* line, size_t maxLen) {
   return false; // line too long
 }
 
+void UpdateItem(int line_number, String uid = ""){
+  if(uid == ""){
+    uid = String(IN_BOARD);
+  }
+  Serial.print("Updating the tool on line ");
+  Serial.print(line_number);
+  Serial.print(" with uid ");
+  Serial.println(uid);
+  readFile(SD, "/items.csv");
+  File file = SD.open("/items.csv", FILE_WRITE);
+  if(!file){
+    Serial.println("Failed to open file for reading");
+    return;
+  }
+  String line; // Assuming a maximum line length of 100 characters
+  int current_line;
+  // Loop through the file line by line
+  if (file.available()) {
+    Serial.println("File is a available");
+    for(current_line = 0; current_line<line_number;current_line++) {
+      line = file.readStringUntil('\n');
+    // Check if this is the line to replace
+    }
+    Serial.print("Now on line ");
+    Serial.println(current_line);
+    // Write the new content (IN_BOARD value)
+    file.println(uid);
+    // Stop processing the file
+    }
+  file.close();
+  readFile(SD, "/items.csv");
+  readFile(SD, "/items.csv");
+}
 
 void ReadItems(int arr[], const String& const_uid = "") {
   // Initialize arr to all zeros
@@ -185,19 +218,19 @@ void ReadItems(int arr[], const String& const_uid = "") {
   String line;
   // Read each line from the file
   while (file.available()) {
-    // Serial.print("line ");
-    // Serial.print(lineNumber);
-    // Serial.println(" reads as follows: ");
+    Serial.print("line ");
+    Serial.print(lineNumber);
+    Serial.println(" reads as follows: ");
     line = file.readStringUntil('\n');
     line.trim();
-    // Serial.println(line);
+    Serial.println(line);
     lineNumber++;
     // Compare the line with uid
     if (lineNumber <= TOOLS_NUM) {
-      // Serial.print("uid == '' ? ");
-      // Serial.println(uid == "");
+      Serial.print("uid == '' ? ");
+      Serial.println(uid == "");
       // Set the corresponding element of arr to 1
-      arr[lineNumber - 1] = (uid=="")? (line == IN_BOARD) : line.equals(uid);
+      arr[lineNumber - 1] = (uid=="")? (line == String(IN_BOARD)) : line.equals(uid);
     }
   }  
   // Close the file
@@ -216,7 +249,7 @@ void UpdateTools(){
 }
 
 //update current_user_tools after a visit to the toolbox
-void UpdateUserTools(String user_name){
+void UpdateUserTools(String& user_name, String& uid){
   for (int i=0;i<TOOLS_NUM;i++){
     if(tools_condition[i]!=UNCHANGED){
       int old = current_user_tools[i];
@@ -225,17 +258,26 @@ void UpdateUserTools(String user_name){
         tools_condition[i] = UNCHANGED;
       }
       else{
-        general_tools[i]= 2-current_user_tools[i];
+        Serial.println("changing general array");
+        Serial.println(general_tools[i]);
+        general_tools[i]= 1-current_user_tools[i];
+        if(general_tools[i] == 1){
+          UpdateItem(i);
+        }
+        else{
+          UpdateItem(i, uid);
+        }
+        Serial.println(general_tools[i]);
         display.clearDisplay();
         display.setCursor(0, 0);
         display.println("Door is closed"); 
         display.println(user_name);
-        String tool_change_str = tools_change_strings[tools_condition[i]];\
+        String tool_change_str = tools_change_strings[tools_condition[i]];
         tool_change_str.toLowerCase();
         display.print(tool_change_str);
         display.println(" the tool");
         display.display();
-        delay(3000);
+        delay(2000);
       }
     }
   }
@@ -416,7 +458,7 @@ void loop(){
     display.setCursor(0,0); 
     display.print("Access denied");
     display.display();
-    delay(2500);
+    delay(2000);
     InitializeOLED();
     return;
   }
@@ -443,28 +485,22 @@ void loop(){
     ToolLoop();
   }
  //UPDATE USER'S TOOLS
-  UpdateUserTools(user_name);
-  Serial.print ("user tools: "); //Debug info
-  Serial.println(*current_user_tools);
+  UpdateUserTools(user_name, displayed_card_id);
+  // Serial.print ("user tools: "); //Debug info
+  // Serial.println(*current_user_tools);
   for (int i=0;i<TOOLS_NUM ;i++){
-    if(!(tools_condition[i] == UNCHANGED || (tools_condition[i] == RETURNED && general_tools[i] == 1) || (tools_condition[i] == BORROWED && general_tools[i] == 0))) {
-        Serial.println("malloc now");
+    if(tools_condition[i] != UNCHANGED) {
         String log_txt = "";
-        Serial.println("malloc succeeded");
         log_txt += "the tool is ";
-        Serial.println("first initialization succeeded");
         if(tools_condition[i] == RETURNED){
           log_txt+= "returned by ";
-          Serial.println("first concatination succeeded");
         }
         else{
           log_txt+= "borrowed by ";
         }
-        Serial.println("CheckPoint");
         log_txt+= user_name.c_str();
-        //concat(log_txt, " at \n");
+        log_txt+="\n";
         appendFile(SD, "/log.txt", log_txt.c_str());
-        //free(log_txt);
         readFile(SD, "/log.txt");
     }
   }
@@ -475,7 +511,7 @@ void loop(){
   display.print("Good day ");
   display.println(first_name);
   display.display();
-  delay(3000);
+  delay(2000);
   InitializeOLED();
   return;
 }

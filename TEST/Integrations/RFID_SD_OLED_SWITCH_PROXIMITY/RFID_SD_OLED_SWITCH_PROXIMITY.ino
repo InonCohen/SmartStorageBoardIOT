@@ -31,14 +31,14 @@ Adafruit_SSD1306 display(OLED_SDA);
 ezButton door_switch(SWITCH_PIN);
 ezButton tool_switch(TOOL_PIN);
 
-int general_tools[TOOLS_NUM];
-int current_user_tools[TOOLS_NUM];
+int general_tools[TOOLS_NUM]; // 0 - the tool is borrowed, 1 - tool is present in the board
+int current_user_tools[TOOLS_NUM]; // 0 - the tool is not the user's, 1 - tool is borrowed by the user
 
 enum CHANGE_IN_TOOLBOX {UNCHANGED, BORROWED, RETURNED};
 enum TOOLS_IN_TOOLBOX {SCREW};
 
-CHANGE_IN_TOOLBOX tool_condition[TOOLS_NUM];
-
+CHANGE_IN_TOOLBOX tools_condition[TOOLS_NUM];
+String tools_change_strings[3] = {"UNCHANGED", "BORROWED", "RETURNED"};
 bool DoorChanged(){
   door_switch.loop(); // MUST call the loop() function first
   if (door_switch.isPressed()){
@@ -55,36 +55,39 @@ bool DoorChanged(){
 }
 
 void ToolLoop(){
-  Serial.println("In ToolLoop");
+  // Serial.println("In ToolLoop");
   tool_switch.loop(); // MUST call the loop() function first
   for (int i=0;i<TOOLS_NUM;i++){
-    Serial.println("In for loop");
-    Serial.print("i = ");
-    Serial.println(i);
-    Serial.println(current_user_tools[i]);
-    if(current_user_tools[i]==1){
+    // Serial.println("In for loop");
+    // Serial.print("i = ");
+    // Serial.println(i);
+    // Serial.println(current_user_tools[i]);
+    if(current_user_tools[i]==1 || general_tools[i] == 1 ){// if the tool is registered as the user's
         if (tool_switch.isPressed()){
           Serial.println("The tool switch: ON -> OFF");
           Serial.println("The tool is RETURNED");
-          tool_condition[i] = RETURNED;
+          tools_condition[i] = RETURNED;
+          //current_user_tools[i] = 1;
           digitalWrite(LED_PIN, LOW);  
         }
         if (tool_switch.isReleased()){
           Serial.println("The tool switch: OFF -> ON");
           Serial.println("The tool is BORROWED");
-          tool_condition[i] = BORROWED;
+          tools_condition[i] = BORROWED;
+          //current_user_tools[i] = 0;
           digitalWrite(LED_PIN, HIGH);  
         }
         int state = tool_switch.getState();
         if (state == HIGH){
           // digitalWrite(LED_PIN, LOW); 
-          Serial.println("The tool is HERE");
-        }
-        else{
-          digitalWrite(LED_PIN, HIGH);  
           Serial.println("The tool is MISSING");
         }
-        delay(500);
+        if (state == LOW)
+        {
+          digitalWrite(LED_PIN, HIGH);  
+          Serial.println("The tool is HERE");
+        }
+        delay(200);
       }
   }
 }
@@ -162,13 +165,13 @@ bool readLine(File file, char* line, size_t maxLen) {
 
 void ReadItems(int arr[], const String& const_uid = "") {
   // Initialize arr to all zeros
-  Serial.println("In ReadItems");
-  Serial.print("const_uid is ");
-  Serial.println(const_uid);
+  // Serial.println("In ReadItems");
+  // Serial.print("const_uid is ");
+  // Serial.println(const_uid);
   String uid = const_uid;
   uid.trim();
-  Serial.print("uid == const_uid ? ");
-  Serial.println(uid == const_uid);
+  // Serial.print("uid == const_uid ? ");
+  // Serial.println(uid == const_uid);
   for (int i = 0; i < TOOLS_NUM; i++) {
     arr[i] = 0;
   }
@@ -182,17 +185,17 @@ void ReadItems(int arr[], const String& const_uid = "") {
   String line;
   // Read each line from the file
   while (file.available()) {
-    Serial.print("line ");
-    Serial.print(lineNumber);
-    Serial.println(" reads as follows: ");
+    // Serial.print("line ");
+    // Serial.print(lineNumber);
+    // Serial.println(" reads as follows: ");
     line = file.readStringUntil('\n');
     line.trim();
-    Serial.println(line);
+    // Serial.println(line);
     lineNumber++;
     // Compare the line with uid
     if (lineNumber <= TOOLS_NUM) {
-      Serial.print("uid == '' ? ");
-      Serial.println(uid == "");
+      // Serial.print("uid == '' ? ");
+      // Serial.println(uid == "");
       // Set the corresponding element of arr to 1
       arr[lineNumber - 1] = (uid=="")? (line == IN_BOARD) : line.equals(uid);
     }
@@ -201,13 +204,40 @@ void ReadItems(int arr[], const String& const_uid = "") {
   file.close();
 }
 
+//update the general_tools array, and zero the rest of the arrays to be ready for a new user
 void UpdateTools(){
   //update general_tools by the tools file
   //update all current_user to UNCHANGED
   for (int i = 0; i < TOOLS_NUM ;i++) {
     current_user_tools[i] = 0;
-    tool_condition[i] = UNCHANGED;
+    tools_condition[i] = UNCHANGED;
     ReadItems(general_tools); //MUST CHANGE 
+  }
+}
+
+//update current_user_tools after a visit to the toolbox
+void UpdateUserTools(String user_name){
+  for (int i=0;i<TOOLS_NUM;i++){
+    if(tools_condition[i]!=UNCHANGED){
+      int old = current_user_tools[i];
+      current_user_tools[i] = (tools_condition[i]==BORROWED);
+      if (old == current_user_tools[i]){
+        tools_condition[i] = UNCHANGED;
+      }
+      else{
+        general_tools[i]= 2-current_user_tools[i];
+        display.clearDisplay();
+        display.setCursor(0, 0);
+        display.println("Door is closed"); 
+        display.println(user_name);
+        String tool_change_str = tools_change_strings[tools_condition[i]];\
+        tool_change_str.toLowerCase();
+        display.print(tool_change_str);
+        display.println(" the tool");
+        display.display();
+        delay(3000);
+      }
+    }
   }
 }
 
@@ -242,7 +272,6 @@ void writeFile(fs::FS &fs, const char * path, const char * message){
 
 void appendFile(fs::FS &fs, const char * path, const char * message){
   Serial.printf("Appending to file: %s\n", path);
-
   File file = fs.open(path, FILE_APPEND);
   if(!file){
       Serial.println("Failed to open file for appending");
@@ -341,7 +370,7 @@ bool CheckUID(String displayed_card_id, String* name_ptr){
       display.display();
       authorized = true;
       Serial.println();
-      delay(3000);
+      delay(2000);
       break;
     }
   }
@@ -413,32 +442,40 @@ void loop(){
     display.display();
     ToolLoop();
   }
-  //Debug info
-  Serial.print ("user tools: ");
+ //UPDATE USER'S TOOLS
+  UpdateUserTools(user_name);
+  Serial.print ("user tools: "); //Debug info
   Serial.println(*current_user_tools);
   for (int i=0;i<TOOLS_NUM ;i++){
-    if(!(tool_condition[i] == UNCHANGED || (tool_condition[i] == RETURNED && general_tools[i] == 1) || (tool_condition[i] == BORROWED && general_tools[i] == 0))) {
-        char* log_txt = (char*)malloc(200);
-        log_txt = "the tool is ";
-        if(tool_condition[i] == RETURNED){
-          strcat(log_txt, "returned by ");
+    if(!(tools_condition[i] == UNCHANGED || (tools_condition[i] == RETURNED && general_tools[i] == 1) || (tools_condition[i] == BORROWED && general_tools[i] == 0))) {
+        Serial.println("malloc now");
+        String log_txt = "";
+        Serial.println("malloc succeeded");
+        log_txt += "the tool is ";
+        Serial.println("first initialization succeeded");
+        if(tools_condition[i] == RETURNED){
+          log_txt+= "returned by ";
+          Serial.println("first concatination succeeded");
         }
         else{
-          strcat(log_txt, "borrowed by ");
+          log_txt+= "borrowed by ";
         }
-        strcat(log_txt, user_name.c_str());
-        strcat(log_txt, " at \n");
-        appendFile(SD, "/log.txt", log_txt);
-        free(log_txt);
+        Serial.println("CheckPoint");
+        log_txt+= user_name.c_str();
+        //concat(log_txt, " at \n");
+        appendFile(SD, "/log.txt", log_txt.c_str());
+        //free(log_txt);
+        readFile(SD, "/log.txt");
     }
   }
   display.clearDisplay();
   display.setCursor(0, 0);
   display.println("Door is closed");
+  digitalWrite(LED_PIN, LOW);  
   display.print("Good day ");
   display.println(first_name);
   display.display();
-  delay(4000);
+  delay(3000);
   InitializeOLED();
   return;
 }

@@ -24,13 +24,13 @@
 #define TEXT_SIZE 1
 #define TOOLS_NUM 1
 #define IN_BOARD 0
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
 
-unsigned long startTime; // Variable to store the start time in milliseconds
-unsigned long duration = 0.1 * 60 * 1000; // Two minutes in milliseconds
 
 MFRC522 rfid(SS_PIN, RST_PIN); // Instance of the class
 
-Adafruit_SSD1306 display(OLED_SDA);
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_SDA);
 
 ezButton door_switch(SWITCH_PIN);
 ezButton tool_switch(TOOL_PIN);
@@ -40,6 +40,9 @@ int current_user_tools[TOOLS_NUM]; // 0 - the tool is not the user's, 1 - tool i
 
 enum CHANGE_IN_TOOLBOX {UNCHANGED, BORROWED, RETURNED};
 enum TOOLS_IN_TOOLBOX {SCREW};
+
+unsigned long startTime; // Variable to store the start time in milliseconds
+unsigned long duration = 0.1 * 60 * 1000; // Two minutes in milliseconds
 
 CHANGE_IN_TOOLBOX tools_condition[TOOLS_NUM];
 String tools_change_strings[3] = {"UNCHANGED", "BORROWED", "RETURNED"};

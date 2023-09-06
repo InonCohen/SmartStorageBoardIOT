@@ -5,10 +5,10 @@
 const char* ssid       = "Inon's";
 const char* password   = "0502261118Ic";
 
-const char* ntpServer1 = "time.google.com";
-const char* ntpServer2 = "time.nist.gov";
-const long  gmtOffset_sec = 3600;
-const int   daylightOffset_sec = 3600;
+// const char* ntpServer1 = "time.google.com";
+// const char* ntpServer2 = "time.nist.gov";
+// const long  gmtOffset_sec = 3600;
+// const int   daylightOffset_sec = 3600;
 
 
 // const char* time_zone = "ILST-2IDT, M3.4.4, M10.5.0";  // TimeZone rule for Europe/Rome including daylight adjustment rules (optional)

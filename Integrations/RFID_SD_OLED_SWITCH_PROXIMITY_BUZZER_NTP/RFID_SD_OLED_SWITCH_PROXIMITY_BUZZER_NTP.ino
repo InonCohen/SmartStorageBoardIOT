@@ -31,8 +31,8 @@
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 
-const char* wifi_ssid       = "Inon's";
-const char* wifi_password   = "0502261118Ic";
+const char* wifi_ssid       = "Cohen";
+const char* wifi_password   = "0502446953";
 
 unsigned long startTime; // Variable to store the start time in milliseconds
 const unsigned long duration = 0.1 * 60 * 1000; // Two minutes in milliseconds
@@ -573,7 +573,7 @@ void setup()
   // Clear the buffer.
   InitializeOLED();  
   pinMode(BUZZER_PIN, OUTPUT);
-  digitalWrite(BUZZER_PIN, HIGH);
+  digitalWrite(BUZZER_PIN, LOW);
 }
 
 void loop()
@@ -627,12 +627,12 @@ void loop()
     display.display();
     int current_time = millis();
     if(current_time - startTime >= duration){
-      digitalWrite(BUZZER_PIN, LOW);
+      digitalWrite(BUZZER_PIN, HIGH);
      //add another 500 milliseconds of silence
     }
     ToolLoop();
   }
-  digitalWrite(BUZZER_PIN, HIGH);
+  digitalWrite(BUZZER_PIN, LOW);
  //UPDATE USER'S TOOLS
   UpdateUserTools(user_name, displayed_card_id);
   // Serial.print ("user tools: "); //Debug info

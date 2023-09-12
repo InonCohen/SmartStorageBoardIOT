@@ -469,7 +469,7 @@ void setup()
   digitalWrite(LED_PIN, LOW);    // turn the LED off by making the voltage LOW
   delay(500);           
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // initialize with the I2C addr 0x3D (for the 128x64)
-  // FillSDInitially();
+  FillSDInitially();
   ReadSDInitially();
   Serial.println("Approximate your card to the reader...");
   // Clear the buffer.

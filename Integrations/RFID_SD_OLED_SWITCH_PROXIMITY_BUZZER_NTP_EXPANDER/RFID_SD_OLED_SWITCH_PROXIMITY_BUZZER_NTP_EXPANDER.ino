@@ -53,7 +53,7 @@ void InitSDCard();
 void clearSD();
 //void listDir(fs::FS &fs, const char * dirname, uint8_t levels);
 bool readLine(File file, char* line, size_t maxLen);
-void readFile(fs::FS &fs, const char * path);
+void readFile(fs::FS &fs, const char * path, bool read_headers = false);
 void writeFile(fs::FS &fs, const char * path, const char * message);
 void appendFile(fs::FS &fs, const char * path, const char * message);
 void deleteFile(fs::FS &fs, const char * path);

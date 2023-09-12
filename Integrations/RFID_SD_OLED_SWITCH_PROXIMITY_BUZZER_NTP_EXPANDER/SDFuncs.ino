@@ -69,7 +69,7 @@ bool readLine(File file, char* line, size_t maxLen) {
   return false; // line too long
 }
 
-void readFile(fs::FS &fs, const char * path)
+void readFile(fs::FS &fs, const char * path, bool read_headers)
 {
   Serial.printf("Reading file: %s\n", path);
   File file = fs.open(path);
@@ -78,7 +78,12 @@ void readFile(fs::FS &fs, const char * path)
       Serial.println("Failed to open file for reading");
       return;
   }
-  Serial.println("Read from file:");
+  // Serial.println("Read from file:");
+  if(!read_headers){
+    if (file.available()){
+      file.readStringUntil('\n');
+    }
+  }
   while(file.available())
   {
       Serial.write(file.read());
@@ -142,7 +147,7 @@ void ReadSDInitially()
 {
   readFile(SD, "/users.csv");
   readFile(SD, "/items.csv");
-  readFile(SD, "/log.txt");
+  readFile(SD, "/log.txt", true);
 }
 
 void FillSDInitially()
@@ -150,9 +155,11 @@ void FillSDInitially()
   // listDir(SD, "/", 0);
   clearSD();
   // listDir(SD, "/", 0);
-  writeFile(SD, "/users.csv", "F9 CF C4 A3, Hila Levi, 0\n");
+  writeFile(SD, "/users.csv", "User ID, Name, Privilege Level\n");
+  appendFile(SD, "/users.csv", "F9 CF C4 A3, Hila Levi, 0\n");
   appendFile(SD, "/users.csv", "59 C5 23 A4, Mais Fadila, 1\n");
-  writeFile(SD, "/items.csv", "F9 CF C4 A3\n");
+  writeFile(SD, "/items.csv", "Borrower ID\n");
+  appendFile(SD, "/items.csv", "F9 CF C4 A3\n");
   String log_str = "Initialized on ";
   char* time_str = GetTimeString();
   log_str += time_str;
@@ -218,6 +225,9 @@ void ReadItems(int arr[], const String& const_uid) {
   }
   int lineNumber = 0; // Line number in the file
   String line;
+  if (file.available()){
+    line = file.readStringUntil('\n'); // skip headers line
+  }
   // Read each line from the file
   while (file.available()) {
     // Serial.print("line ");
@@ -261,7 +271,7 @@ void UpdateLog(String& user_name)
         log_txt += timeString;
         log_txt += "\n";
         appendFile(SD, "/log.txt", log_txt.c_str());
-        readFile(SD, "/log.txt");
+        readFile(SD, "/log.txt", true);
     }
   }
   free(timeString);

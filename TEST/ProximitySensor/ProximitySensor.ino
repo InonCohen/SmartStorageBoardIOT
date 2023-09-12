@@ -1,41 +1,59 @@
-/*
- * This ESP32 code is created by esp32io.com
- *
- * This ESP32 code is released in the public domain
- *
- * For more detail (instruction and wiring diagram), visit https://esp32io.com/tutorials/esp32-switch
- */
+//Written by Nick Koumaris
+//info@educ8s.tv
 
+#include <MFRC522.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include <SPI.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <ezButton.h>
+#include "FS.h"
+#include "SD.h"
 
-#define SWITCH_PIN 32
+#define TOOL_PIN 32
 #define LED_PIN 2
+#define TOOLS_NUM 1
+ezButton tool_switch(TOOL_PIN);
 
-ezButton mySwitch(SWITCH_PIN);  // create ezButton object that attach to ESP32 pin GPIO17
 
-void setup() {
+void setup() 
+{
   Serial.begin(115200);
-  mySwitch.setDebounceTime(50); // set debounce time to 50 milliseconds
+  tool_switch.setDebounceTime(50);
   pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LOW);    // turn the LED off by making the voltage LOW
+  delay(500);           
+
 }
 
-void loop() {
-  mySwitch.loop(); // MUST call the loop() function first
+void loop(){
+   tool_switch.loop(); // MUST call the loop() function first
+  for (int i = 0 ; i < TOOLS_NUM ; i++)
+  {
+if (tool_switch.isPressed()){
+          // Serial.println("The tool switch: ON -> OFF");
+          Serial.println("The tool is RETURNED");
 
-  if (mySwitch.isPressed())
-    Serial.println("The switch: OFF -> ON");
-
-  if (mySwitch.isReleased())
-    Serial.println("The switch: ON -> OFF");
-
-  int state = mySwitch.getState();
-  if (state == HIGH)
-    Serial.println("The switch: OFF");
-  else
-    Serial.println("The switch: ON");
-
-  digitalWrite(LED_PIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-  delay(1000);                       // wait for a second
-  digitalWrite(LED_PIN, LOW);    // turn the LED off by making the voltage LOW
-  delay(1000);           
+          digitalWrite(LED_PIN, LOW);   //LOW for led is off
+        }
+        if (tool_switch.isReleased()){
+          // Serial.println("The tool switch: OFF -> ON");
+          Serial.println("The tool is BORROWED");
+          digitalWrite(LED_PIN, HIGH);  //HIGH for led is on
+        }
+        int state = tool_switch.getState();
+        if (state == HIGH) // state is for the tool switch, HIGH is not pressed
+        {
+          // digitalWrite(LED_PIN, LOW); 
+          Serial.println("The tool is MISSING");
+        }
+        else // state is for the tool switch, LOW is pressed
+        {
+          digitalWrite(LED_PIN, HIGH);  
+          Serial.println("The tool is HERE");
+        }
+        delay(200);
+  }
 }

@@ -26,9 +26,9 @@
 #define I2C_SDA_PIN 26
 #define I2C_SCL_PIN 27
 #define OLED_SDA 21
-#define RFID_SS_PIN 5
-#define RFID_RST_PIN 4
-#define SD_CS_PIN 15
+#define SS_PIN 5
+#define RST_PIN 4
+#define CS_PIN_SD 15
 #define PCF8574_1_ADDRESS 0x20
 #define PCF8574_2_ADDRESS 0x27
 #define OLED_ADDRESS 0x3C
@@ -74,7 +74,7 @@ void ToolLoop();
 
 //declare global variables
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_SDA);
-MFRC522 rfid(RFID_SS_PIN, RFID_RST_PIN); // Instance of the class
+MFRC522 rfid(SS_PIN, RST_PIN); // Instance of the class
 ezButton door_switch(SWITCH_PIN);
 Adafruit_PCF8574 pcf1;
 Adafruit_PCF8574 pcf2;

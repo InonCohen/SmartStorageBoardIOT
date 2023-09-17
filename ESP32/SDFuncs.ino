@@ -159,7 +159,7 @@ void FillSDInitially()
   appendFile(SD, "/users.csv", "F9 CF C4 A3, Hila Levi, 0\n");
   appendFile(SD, "/users.csv", "59 C5 23 A4, Mais Fadila, 1\n");
   writeFile(SD, "/items.csv", "Borrower ID\n");
-  appendFile(SD, "/items.csv", "F9 CF C4 A3\n");
+  appendFile(SD, "/items.csv", "F9 CF C4 A3\n0\n59 C5 23 A4\n0\nF9 CF C4 A3\n0\n");
   String log_str = "Initialized on ";
   char* time_str = GetTimeString();
   log_str += time_str;

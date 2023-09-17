@@ -1,0 +1,26 @@
+Parameters for connecting the ESP32 to the internet:
+wifi_ssid = "Inon's",
+wifi_password   = "0502261118Ic"
+
+The allowed time for the door to be open befor the buzzer starts buzzing (in milliseconds):
+duration = 120 * 1000 (seconds * 1000 milliseconds)
+
+Parameters for setting the hardware connections
+SWITCH_PIN: 33 (for the switch that represents the door),
+BUZZER_PIN: 14,
+I2C_SDA_PIN: 26,
+I2C_SCL_PIN: 27,
+OLED_SDA: 21,
+RFID_SS_PIN: 5,
+RFID_RST_PIN: 4
+SD_CS_PIN: 15
+
+Parameters for I2C addresses:
+PCF8574_1_ADDRESS 0x20,
+PCF8574_2_ADDRESS 0x27,
+OLED_ADDRESS 0x3C
+
+Parameters for OLED definitions:
+TEXT_SIZE: 1,
+ SCREEN_WIDTH: 128 (OLED display width, in pixels),
+SCREEN_HEIGHT: 64 (OLED display height, in pixels),

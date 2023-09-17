@@ -17,19 +17,10 @@
 Adafruit_PCF8574 pcf1;
 Adafruit_PCF8574 pcf2;
 String states[8][3] = { { "OFF", "OFF", "OFF" }, { "OFF", "OFF", "ON" }, { "OFF", "ON", "OFF" }, { "OFF", "ON", "ON" }, { "ON", "OFF", "OFF" }, { "ON", "OFF", "ON" }, { "ON", "ON", "OFF" }, { "ON", "ON", "ON" } };
+
 void setup() {
   Serial.begin(115200);
-  Wire.begin();
-  // i2c_init();
-  pcf1.begin(PCF8574_1_ADDRESS, &Wire);
-  pcf2.begin(PCF8574_2_ADDRESS, &Wire);
-  delay(500);
-  for (int i = 0; i < 3; i++) {
-    pcf1.pinMode(2 * i + 1, INPUT);
-    pcf1.pinMode(2 * i, OUTPUT);
-    pcf2.pinMode(2 * i + 1, INPUT);
-    pcf2.pinMode(2 * i, OUTPUT);
-  }
+
 }
 
 void loop() {

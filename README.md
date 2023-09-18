@@ -1,7 +1,7 @@
-# SmartStorageBoard Project by :  Inon Cohen, Hila Levi, and Mais Fadila.
+# SmartStorageBoard Project by :  Inon Cohen, Hila Levi, and Mais Fadila
   
-## Details about the project
- We built a smart starge board, of which system manages an inventory of 6 Tools on smart "hangers", and alows tracking WHO borrowed or returned each tool and WHEN
+## Details about the project:
+ We built a smart starge board, of which system manages an inventory of 6 Tools on smart "hangers", and alows tracking WHO borrowed or returned each tool and WHEN.
 
 ## Folder description :
 * ESP32: source code for the esp side (firmware).

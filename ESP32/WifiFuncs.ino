@@ -18,7 +18,7 @@ void NTPsetup()
    * in such a case time adjustment won't be handled automagicaly.
    */
   //configTime(gmtOffset_sec, daylightOffset_sec, ntpServer1, ntpServer2);
-  configTime(3 * 3600, 0, "pool.ntp.org"); // Set time zone offset for Israel (2 hours ahead of UTC)
+  configTime(3 * 3600, 0, "time.google.com"); // Set time zone offset for Israel (2 hours ahead of UTC)
 
 
   /**
@@ -30,6 +30,7 @@ void NTPsetup()
 
   //connect to WiFi
   Serial.printf("Connecting to %s ", wifi_ssid);
+  IPAddress dns(8,8,8,8);
   WiFi.begin(wifi_ssid, wifi_password);
   while (WiFi.status() != WL_CONNECTED) {
       delay(500);

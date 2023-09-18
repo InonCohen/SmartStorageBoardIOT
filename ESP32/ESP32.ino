@@ -1,6 +1,6 @@
 //Written by Nick Koumaris
 //info@educ8s.tv
-#include <Arduino.h>
+#include "Arduino.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,18 +17,22 @@
 #include "SD.h"
 #include "FS.h"
 #include "ezButton.h"
+// #include "FILE.h"
 
 //define pins
-#define SWITCH_PIN 33
-#define TOOL_PIN 32
-#define LED_PIN 2
+#define RFID_RST_PIN 4
+#define RFID_SS_PIN 5
+#define GREEN_PIN 12
+#define RED_PIN 13
 #define BUZZER_PIN 14
-#define I2C_SDA_PIN 26
-#define I2C_SCL_PIN 27
+#define SD_CS_PIN 15
 #define OLED_SDA 21
-#define SS_PIN 5
-#define RST_PIN 4
-#define CS_PIN_SD 15
+#define SWITCH_PIN 26
+#define BLUE_PIN 27 
+#define I2C_SDA_PIN 32
+#define I2C_SCL_PIN 33
+
+
 #define PCF8574_1_ADDRESS 0x20
 #define PCF8574_2_ADDRESS 0x27
 #define OLED_ADDRESS 0x3C
@@ -49,13 +53,13 @@ bool CheckUID(String displayed_card_id, String* name_ptr);
 //OLEDFuncs
 void InitializeOLED();
 // ExpanderToolFuncs
-// void i2c_init();
-// void digitalWritePCF(uint8_t pcfAddress, int pin, bool value);
-// bool digitalReadPCF(uint8_t pcfAddress, int pin);
 void InitializeTools();
+void ToolLoop();
+void UpdateTools();
 void UpdateUserTools(String& user_name, String& uid);
 void WriteTool(int tool_num, int led_state);
 bool ReadTool(int tool_num);
+void GetSwitchesState(String* arr);
 //SDFuncs
 void InitSDCard();
 void clearSD();
@@ -70,28 +74,32 @@ void FillSDInitially();
 void UpdateItem(int line_number, String uid = "");
 void ReadItems(int arr[], const String& const_uid = "");
 void UpdateLog(String& user_name);
-void ToolLoop();
+void TurnOffBoard();
+void TurnOnBoard();
+
 
 //declare global variables
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_SDA);
-MFRC522 rfid(SS_PIN, RST_PIN); // Instance of the class
+MFRC522 rfid(RFID_SS_PIN, RFID_RST_PIN); // Instance of the class
 ezButton door_switch(SWITCH_PIN);
 Adafruit_PCF8574 pcf1;
 Adafruit_PCF8574 pcf2;
 
-const char* wifi_ssid       = "Inon's";
-const char* wifi_password   = "0502261118Ic";
+const char* wifi_ssid       = "lib-test";
+const char* wifi_password   = "test-3-8";
 
 
 unsigned long startTime; // Variable to store the start time in milliseconds
-const unsigned long duration = 6 * 1000; // seconds * 1000 = duration in milliseconds
+const unsigned long duration = 30 * 1000; // seconds * 1000 = duration in milliseconds
+
+enum CHANGE_IN_TOOLBOX {UNCHANGED, BORROWED, RETURNED};
+enum LED_COLOR {BLUE, RED, GREEN};
 
 int general_tools[TOOLS_NUM]; // 0 - the tool is borrowed, 1 - tool is present in the board
 int current_user_tools[TOOLS_NUM]; // 0 - the tool is not the user's, 1 - tool is borrowed by the user
-
-enum CHANGE_IN_TOOLBOX {UNCHANGED, BORROWED, RETURNED};
-enum TOOLS_IN_TOOLBOX {SCREW1, SCREW2, SCISSORS, PLIERS, SCREW3, SCREW4};
-
+String tools_in_toolbox[TOOLS_NUM] = {"Pliers 1", "Cutter", "Pliers 2", "Screw 1", "Screw 2", "Screw 3"};
+String switchesFirstState[TOOLS_NUM];
+String switchesLastState[TOOLS_NUM];
 CHANGE_IN_TOOLBOX tools_condition[TOOLS_NUM];
 String tools_change_strings[3] = {"UNCHANGED", "BORROWED", "RETURNED"};
 
@@ -112,29 +120,54 @@ bool DoorChanged(){
   return false;
 }
 
+void SetLed(){
+  pinMode(RED_PIN,   OUTPUT);
+  pinMode(GREEN_PIN, OUTPUT);
+  pinMode(BLUE_PIN,  OUTPUT);
+}
+
+void SetLedColor(LED_COLOR color) {
+  int redValue = 255 * (color == RED);
+  int greenValue = 255 * (color == GREEN);
+  int blueValue = 255 * (color == BLUE);
+  digitalWrite(RED_PIN, redValue);
+  digitalWrite(GREEN_PIN, greenValue);
+  digitalWrite(BLUE_PIN, blueValue);
+}
+
 void setup() 
 {
   Serial.begin(115200);
+  // delay(3000);
   SPI.begin(); // Init SPI bus
-  delay(1000);
-  NTPsetup();
-  delay(1000);
+  //i2c_init();
+  // delay(3000);
   InitSDCard();
-  pcf1.begin(PCF8574_1_ADDRESS);
-  pcf2.begin(PCF8574_2_ADDRESS);
+  // delay(3000);
+  NTPsetup();
+  delay(3000);
+  FillSDInitially();
+  delay(3000);
+  ReadSDInitially();
+  Wire1.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+  // delay(3000);
   rfid.PCD_Init(); // Init MFRC522 
   door_switch.setDebounceTime(50);
+  // delay(3000);
   InitializeTools();
-  delay(1000);           
+  SetLed();
+  delay(100);
+  SetLedColor(BLUE);
+
+  // delay(1000);           
   display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDRESS);  // initialize with the I2C addr 0x3D (for the 128x64)
-  
-  FillSDInitially();
-  ReadSDInitially();
   Serial.println("Approximate your card to the reader...");
   // Clear the buffer.
   InitializeOLED();  
   pinMode(BUZZER_PIN, OUTPUT);
   digitalWrite(BUZZER_PIN, HIGH);
+  TurnOffBoard();
+
 }
 
 void loop()
@@ -155,6 +188,7 @@ void loop()
   bool authorized = CheckUID(displayed_card_id, &user_name);
   if (!authorized)
   {
+    SetLedColor(RED);
     Serial.println("Access denied");
     display.clearDisplay();
     display.setCursor(0,0); 
@@ -168,6 +202,7 @@ void loop()
   String first_name = user_name.substring(0, space_index);
   while(!DoorChanged())
   {
+    SetLedColor(GREEN);
     display.clearDisplay();
     display.setCursor(0, 0);
     display.print("Hello ");
@@ -179,6 +214,23 @@ void loop()
   delay(100);
   // Serial.println("Going to update user_array");
   ReadItems(current_user_tools, displayed_card_id);
+  Serial.println("CurrentUserTools: ");
+  for(int i=0;i<TOOLS_NUM;i++){
+    Serial.print(current_user_tools[i]);
+  }
+  Serial.print("\n");
+    Serial.println("GeneralTools: ");
+  for(int i=0;i<TOOLS_NUM;i++){
+    Serial.print(general_tools[i]);
+  }
+  GetSwitchesState(switchesFirstState);
+  Serial.println("Switches conditions first:");
+  for (int j = 0; j < TOOLS_NUM; j++) {
+    Serial.print(switchesFirstState[j]);
+    Serial.print(" ");
+  }
+  Serial.print("\n");
+  Serial.print("\n");
   while(!DoorChanged()){
     display.clearDisplay();
     display.setCursor(0, 0);
@@ -189,24 +241,46 @@ void loop()
     int current_time = millis();
     if(current_time - startTime >= duration){
       digitalWrite(BUZZER_PIN, LOW);
+      SetLedColor(RED);
      //add another 500 milliseconds of silence
     }
     ToolLoop();
   }
   digitalWrite(BUZZER_PIN, HIGH);
+  SetLedColor(BLUE);
  //UPDATE USER'S TOOLS
+  GetSwitchesState(switchesLastState);
+  for (int j = 0; j < TOOLS_NUM; j++){
+    if((current_user_tools[j] == 1 || general_tools[j] == 1) && (switchesFirstState[j] != switchesLastState[j])){
+      if(switchesLastState[j] == "OFF"){
+        tools_condition[j] = BORROWED;
+      }
+      else{
+        tools_condition[j] = RETURNED;
+      }
+    }
+  }
+  delay(100);
+  Serial.println("ToolsCondition: (0=unchanges, 1=borrowed, 2=returned");
+  for (int j = 0; j < TOOLS_NUM; j++) {
+    Serial.print(tools_condition[j]);
+  }
+  Serial.print("\n");
   UpdateUserTools(user_name, displayed_card_id);
   // Serial.print ("user tools: "); //Debug info
   // Serial.println(*current_user_tools);
   UpdateLog(user_name);
+  readFile(SD,"/items.csv", true);
   display.clearDisplay();
   display.setCursor(0, 0);
   display.println("Door is closed");
-  digitalWrite(LED_PIN, LOW);  
+  //digitalWrite(LED_PIN, LOW);  //change for actual led
+  TurnOffBoard();
   display.print("Goodbye ");
   display.println(first_name);
   display.display();
   delay(2000);
+  readFile(SD, "/log.txt", true);
   InitializeOLED();
   return;
 }

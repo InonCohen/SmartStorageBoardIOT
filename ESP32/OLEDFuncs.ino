@@ -1,6 +1,7 @@
 
 void InitializeOLED()
 {
+  SetLedColor(BLUE);
   display.clearDisplay();
   display.display();
   display.setTextColor(WHITE); // or BLACK;

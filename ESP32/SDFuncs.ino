@@ -1,6 +1,6 @@
 
 void InitSDCard(){
-  if(!SD.begin(CS_PIN_SD)){
+  if(!SD.begin(SD_CS_PIN)){
     Serial.println("Card Mount Failed");
     return;
   }
@@ -145,8 +145,8 @@ void deleteFile(fs::FS &fs, const char * path)
 
 void ReadSDInitially()
 {
-  readFile(SD, "/users.csv");
-  readFile(SD, "/items.csv");
+  readFile(SD, "/users.csv", true);
+  readFile(SD, "/items.csv", true);
   readFile(SD, "/log.txt", true);
 }
 
@@ -159,7 +159,7 @@ void FillSDInitially()
   appendFile(SD, "/users.csv", "F9 CF C4 A3, Hila Levi, 0\n");
   appendFile(SD, "/users.csv", "59 C5 23 A4, Mais Fadila, 1\n");
   writeFile(SD, "/items.csv", "Borrower ID\n");
-  appendFile(SD, "/items.csv", "F9 CF C4 A3\n0\n59 C5 23 A4\n0\nF9 CF C4 A3\n0\n");
+  appendFile(SD, "/items.csv", "0\n0\n0\n0\n0\n0\n");
   String log_str = "Initialized on ";
   char* time_str = GetTimeString();
   log_str += time_str;
@@ -178,30 +178,47 @@ void UpdateItem(int line_number, String uid){
   // Serial.print(line_number);
   // Serial.print(" with uid ");
   // Serial.println(uid);
-  // readFile(SD, "/items.csv");
-  File file = SD.open("/items.csv", FILE_WRITE);
+  readFile(SD, "/items.csv", true);
+  File file = SD.open("/items.csv", FILE_READ);
+  // Serial.println("after opening the file");
+  // readFile(SD, "/items.csv", true);
   if(!file){
     Serial.println("Failed to open file for reading");
     return;
   }
+  // File new_file = SD.open("\tmp.csv", FILE_WRITE);
   String line; // Assuming a maximum line length of 100 characters
-  int current_line;
+  int current_line = 0;
   // Loop through the file line by line
   if (file.available()) {
     // Serial.println("File is available");
-    for(current_line = 0 ; current_line < line_number ; current_line++) {
-      line = file.readStringUntil('\n');
-    // Check if this is the line to replace
+    line = file.readStringUntil('\n');
+    writeFile(SD, "/tmp.csv", line.c_str());
+    appendFile(SD,"/tmp.csv", "\n");
+    Serial.print("Line is: ");
+    Serial.println(line);    
+  for(; current_line < line_number ; current_line++) {
+    line = file.readStringUntil('\n');
+    Serial.print("Line is: ");
+    Serial.println(line);
+    appendFile(SD, "/tmp.csv", line.c_str());
+    appendFile(SD, "/tmp.csv", "\n");
     }
-    // Serial.print("Now on line ");
+    line = file.readStringUntil('\n');
     // Serial.println(current_line);
     // Write the new content (IN_BOARD value)
-    file.println(uid);
-    // Stop processing the file
+    appendFile(SD, "/tmp.csv", uid.c_str());
+    appendFile(SD, "/tmp.csv", "\n");
+    while(file.available()){
+      line = file.readStringUntil('\n');
+      appendFile(SD, "/tmp.csv", line.c_str());
+      appendFile(SD, "/tmp.csv", "\n");
     }
   file.close();
-  // readFile(SD, "/items.csv");
-  readFile(SD, "/items.csv");
+  deleteFile(SD, "/items.csv");// readFile(SD, "/items.csv");
+  SD.rename("/tmp.csv", "/items.csv");
+  readFile(SD, "/items.csv", true);
+}
 }
 
 void ReadItems(int arr[], const String& const_uid) {
@@ -257,8 +274,8 @@ void UpdateLog(String& user_name)
   {
     if(tools_condition[i] != UNCHANGED) 
     {
-        String log_txt = "";
-        log_txt += "The tool is ";
+        String log_txt = tools_in_toolbox[i];
+        log_txt += " is ";
         if(tools_condition[i] == RETURNED)
         {
           log_txt += "returned by ";
@@ -272,7 +289,7 @@ void UpdateLog(String& user_name)
         log_txt += timeString;
         log_txt += "\n";
         appendFile(SD, "/log.txt", log_txt.c_str());
-        readFile(SD, "/log.txt", true);
+        
     }
   }
   free(timeString);

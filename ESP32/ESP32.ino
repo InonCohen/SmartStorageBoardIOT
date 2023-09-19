@@ -198,6 +198,7 @@ void loop()
     InitializeOLED();
     return;
   }
+  SetLedColor(GREEN);
   int space_index = user_name.indexOf(' '); // Find the index of the first space
   String first_name = user_name.substring(0, space_index);
   while(!DoorChanged())

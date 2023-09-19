@@ -27,26 +27,51 @@ void clearSD() {
   deleteFile(SD, "/log.txt");
 }
 
-void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
+void listDir(fs::FS &fs, const char * dirname, uint8_t levels, String chat_id = ""){
+  if(chat_id != "")
+  {
+    bot.sendMessage(chat_id, "Listing files:", "");
+  }
   Serial.printf("Listing directory: %s\n", dirname);
+  
   File root = fs.open(dirname);
   if(!root){
+      if(chat_id != "")
+      {
+        bot.sendMessage(chat_id, "Failed to open directory", "");
+      }
       Serial.println("Failed to open directory");
       return;
   }
   if(!root.isDirectory()){
+      if(chat_id != "")
+      {
+        bot.sendMessage(chat_id, "Not a directory", "");
+      }
       Serial.println("Not a directory");
       return;
   }
   File file = root.openNextFile();
   while(file){
     if(file.isDirectory()){
-        Serial.print("  DIR : ");
-        Serial.println(file.name());
-        if(levels){
-            listDir(fs, file.path(), levels -1);
+        if(chat_id == "")
+        {
+          Serial.print("  DIR : ");
+          Serial.println(file.name());
+          if(levels){
+              listDir(fs, file.path(), levels -1);
+          }
         }
+        else
+        {
+          bot.sendMessage(chat_id, "End of files ", "");
+          return;
+        } 
     } else {
+        if(chat_id != "")
+        {
+          bot.sendMessage(chat_id, file.name(), "");
+        }
         Serial.print("  FILE: ");
         Serial.print(file.name());
         Serial.print("  SIZE: ");

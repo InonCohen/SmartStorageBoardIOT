@@ -31,12 +31,16 @@ void NTPsetup()
   //connect to WiFi
   Serial.printf("Connecting to %s ", wifi_ssid);
   IPAddress dns(8,8,8,8);
+  WiFi.mode(WIFI_STA);
   WiFi.begin(wifi_ssid, wifi_password);
+  client.setCACert(TELEGRAM_CERTIFICATE_ROOT); // Add root certificate for api.telegram.org
   while (WiFi.status() != WL_CONNECTED) {
       delay(500);
       Serial.print(".");
   }
   Serial.println(" CONNECTED");
+  // Print ESP32 Local IP Address
+  Serial.println(WiFi.localIP());
 }
 
 char* GetTimeString(){

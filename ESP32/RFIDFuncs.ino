@@ -16,7 +16,7 @@ void ReadTagID(String* uid)
   (*uid).toUpperCase();
 }
 
-bool CheckUID(String displayed_card_id, String* name_ptr)
+bool CheckUID(String displayed_card_id, String* name_ptr, bool print_to_OLED)
 {
   Serial.println();
   Serial.print("Message : ");
@@ -42,14 +42,17 @@ bool CheckUID(String displayed_card_id, String* name_ptr)
       String user_name_string(userName);
       user_name_string.trim();
       *name_ptr = user_name_string;
-      Serial.print("user name is ");
-      Serial.println(userName);
-      Serial.println("Authorized access");
-      display.clearDisplay();
-      display.setCursor(0, 0);
-      display.print("Hello");
-      display.print(userName);
-      display.display();
+      if(print_to_OLED)
+      {
+        Serial.print("user name is ");
+        Serial.println(userName);
+        Serial.println("Authorized access");
+        display.clearDisplay();
+        display.setCursor(0, 0);
+        display.print("Hello");
+        display.print(userName);
+        display.display();
+      }
       authorized = true;
       Serial.println();
       delay(1500);

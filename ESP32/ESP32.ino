@@ -11,6 +11,10 @@
 #include <SPI.h>
 #include <Wire.h>
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
+#include <UniversalTelegramBot.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
 #include "time.h"
 #include "sntp.h"
 #include "driver/i2c.h"
@@ -44,12 +48,20 @@
 #define TOOLS_NUM 6
 #define IN_BOARD 0
 
+//Telegram BOT
+#define BOTtoken "6214411428:AAF8yQOTw0OyQ_O9o7AAl6cjddUneeJ3pz0"  // your Bot Token (Get from Botfather)
+
+//Telegram
+#define CHAT_ID "1701605220"
+
+
+
 //WifiFuncs
 void NTPsetup();
 char* GetTimeString();
 //RFIDFuncs
 void ReadTagID(String* uid);
-bool CheckUID(String displayed_card_id, String* name_ptr);
+bool CheckUID(String displayed_card_id, String* name_ptr, bool print_to_OLED = true);
 //OLEDFuncs
 void InitializeOLED();
 // ExpanderToolFuncs
@@ -76,6 +88,7 @@ void ReadItems(int arr[], const String& const_uid = "");
 void UpdateLog(String& user_name);
 void TurnOffBoard();
 void TurnOnBoard();
+void telegram_loop();
 
 
 //declare global variables
@@ -84,6 +97,11 @@ MFRC522 rfid(RFID_SS_PIN, RFID_RST_PIN); // Instance of the class
 ezButton door_switch(SWITCH_PIN);
 Adafruit_PCF8574 pcf1;
 Adafruit_PCF8574 pcf2;
+WiFiClientSecure client;
+UniversalTelegramBot bot(BOTtoken, client);
+
+int botRequestDelay = 10000;
+unsigned long lastTimeBotRan;
 
 const char* wifi_ssid       = "lib-test";
 const char* wifi_password   = "test-3-8";
@@ -167,13 +185,18 @@ void setup()
   pinMode(BUZZER_PIN, OUTPUT);
   digitalWrite(BUZZER_PIN, HIGH);
   TurnOffBoard();
-
+  lastTimeBotRan = millis();
 }
 
 void loop()
 {
   if (!rfid.PICC_IsNewCardPresent()) 
   {
+    if (millis() > lastTimeBotRan + botRequestDelay)  
+    {
+      telegram_loop();
+      delay(150);
+    }
     return;
   }
   // Select one of the cards

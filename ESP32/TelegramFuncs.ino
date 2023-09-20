@@ -12,6 +12,45 @@ byte getNextByte()
   return myFile.read();
 }
 
+bool CheckID(String user_id)
+{
+  Serial.println();
+  Serial.print("Message : ");
+  user_id.toUpperCase();
+  char* file_content = (char*)malloc(100);
+  File file = SD.open("/users.csv");
+  bool authorized = false;
+  Serial.println("1");
+  while(readLine(file, file_content, file.size()))
+  {
+    Serial.println("2");
+    char* token = strtok(file_content, ",");
+    char *ID;
+    if (token != NULL) 
+    {
+      Serial.println("3");
+    // Extract the content of the first item (column) into uid
+      ID = token;
+    }
+    if (user_id == ID) //change here the UID of the card/cards that you want to give access
+    {
+      Serial.println("4");
+        // Move to the next token (second column)
+      // token = strtok(NULL, ",");
+      // char* Name = token;
+      // String name_string(Name);
+      // name_string.trim();
+      // *name_ptr = name_string;
+      authorized = true;
+      Serial.println();
+      delay(500);
+      break;
+    }
+  }
+  Serial.println("5");
+  return authorized;
+}
+
 
 void sendFile(fs::FS &fs, const char * path, String chat_id, const char * file_name)
 {
@@ -77,14 +116,14 @@ void add_new_user(fs::FS &fs, String chat_id, String text, const char * file_nam
       bot.sendMessage(chat_id, "Command was not written correctly, the structure is '/add_user, UserID, UserName'", "");  
       return;
     }
-    if(CheckUID(ID, &Name, false))
+    if(CheckID(ID))
     {
       Serial.println("User already exists");
       Serial.println(to_append);
       bot.sendMessage(chat_id, "User already exists", "");  
       return;
     }
-    to_append += ", 0\n";
+    to_append += ", 1\n";
     char* to_append_char = (char*)malloc(to_append.length() + 1);
     strcpy(to_append_char, to_append.c_str());
     appendFile(SD, file_name, to_append_char);
@@ -257,12 +296,12 @@ void handleNewMessages(int numNewMessages) {
       else if (command == "/make_manager")
       {
         // UpdateFile(text, "1", "/users.csv", chat_id);
-        change_file(SD, text, chat_id, ", 1");
+        change_file(SD, text, chat_id, ", 0");
       }
       else if (command == "/remove_manager")
       {
         // UpdateFile(text, "1", "/users.csv", chat_id);
-        change_file(SD, text, chat_id, ", 0");
+        change_file(SD, text, chat_id, ", 1");
       }
       // else if(command == "/delete_item")
       // {
@@ -283,21 +322,28 @@ void handleNewMessages(int numNewMessages) {
 }
 
 void telegram_loop() {
-  Serial.println("here 1");
+ 
   // if (millis() > lastTimeBotRan + botRequestDelay)  
   // {
-      Serial.println("here 2");
-
+      
+    Serial.println("telegram");
     int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
-    Serial.println("here 3");
+    
     Serial.println(numNewMessages);
     if(numNewMessages) {
-        Serial.println("here 4");
-
+      SetLedColor(RED);
+      display.clearDisplay();
+      display.display();
+      display.setTextColor(WHITE); // or BLACK;
+      display.setTextSize(TEXT_SIZE);
+      display.setCursor(0,0); 
+      display.println(" System is occupied,\n please wait");
+      display.display();
       Serial.println("got response");
       handleNewMessages(numNewMessages);
       //numNewMessages = bot.getUpdates(bot.last_message_received);
     }
     lastTimeBotRan = millis();
+    Serial.println("telegram finish");
   // }
 }

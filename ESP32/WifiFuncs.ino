@@ -34,6 +34,7 @@ void NTPsetup()
   WiFi.mode(WIFI_STA);
   WiFi.begin(wifi_ssid, wifi_password);
   client.setCACert(TELEGRAM_CERTIFICATE_ROOT); // Add root certificate for api.telegram.org
+  int start_time = millis();
   while (WiFi.status() != WL_CONNECTED) {
       delay(500);
       Serial.print(".");

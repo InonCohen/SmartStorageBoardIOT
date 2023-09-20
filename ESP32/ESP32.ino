@@ -28,11 +28,11 @@
 #define RFID_SS_PIN 5
 #define GREEN_PIN 12
 #define RED_PIN 13
-#define BUZZER_PIN 14
+#define BUZZER_PIN 27
 #define SD_CS_PIN 15
 #define OLED_SDA 21
 #define SWITCH_PIN 26
-#define BLUE_PIN 27 
+#define BLUE_PIN 14
 #define I2C_SDA_PIN 32
 #define I2C_SCL_PIN 33
 
@@ -89,6 +89,7 @@ void UpdateLog(String& user_name);
 void TurnOffBoard();
 void TurnOnBoard();
 void telegram_loop();
+void OLED_setUP();
 
 
 //declare global variables
@@ -108,7 +109,7 @@ const char* wifi_password   = "test-3-8";
 
 
 unsigned long startTime; // Variable to store the start time in milliseconds
-const unsigned long duration = 30 * 1000; // seconds * 1000 = duration in milliseconds
+const unsigned long duration = 120 * 1000; // seconds * 1000 = duration in milliseconds
 
 enum CHANGE_IN_TOOLBOX {UNCHANGED, BORROWED, RETURNED};
 enum LED_COLOR {BLUE, RED, GREEN};
@@ -158,6 +159,10 @@ void setup()
   Serial.begin(115200);
   // delay(3000);
   SPI.begin(); // Init SPI bus
+  
+  display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDRESS);  // initialize with the I2C addr 0x3D (for the 128x64)
+  SetLed();
+  OLED_setUP();
   //i2c_init();
   // delay(3000);
   InitSDCard();
@@ -173,19 +178,18 @@ void setup()
   door_switch.setDebounceTime(50);
   // delay(3000);
   InitializeTools();
-  SetLed();
+
   delay(100);
   SetLedColor(BLUE);
 
   // delay(1000);           
-  display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDRESS);  // initialize with the I2C addr 0x3D (for the 128x64)
   Serial.println("Approximate your card to the reader...");
   // Clear the buffer.
   InitializeOLED();  
   pinMode(BUZZER_PIN, OUTPUT);
   digitalWrite(BUZZER_PIN, HIGH);
   TurnOffBoard();
-  lastTimeBotRan = millis();
+  lastTimeBotRan = millis() - 5;
 }
 
 void loop()
@@ -195,7 +199,8 @@ void loop()
     if (millis() > lastTimeBotRan + botRequestDelay)  
     {
       telegram_loop();
-      delay(150);
+      delay(100);
+      InitializeOLED();
     }
     return;
   }

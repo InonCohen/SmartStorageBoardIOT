@@ -104,8 +104,8 @@ UniversalTelegramBot bot(BOTtoken, client);
 int botRequestDelay = 10000;
 unsigned long lastTimeBotRan;
 
-const char* wifi_ssid       = "lib-test";
-const char* wifi_password   = "test-3-8";
+const char* wifi_ssid       = "Inon's";
+const char* wifi_password   = "0502261118Ic";
 
 
 unsigned long startTime; // Variable to store the start time in milliseconds
@@ -116,11 +116,14 @@ enum LED_COLOR {BLUE, RED, GREEN};
 
 int general_tools[TOOLS_NUM]; // 0 - the tool is borrowed, 1 - tool is present in the board
 int current_user_tools[TOOLS_NUM]; // 0 - the tool is not the user's, 1 - tool is borrowed by the user
-String tools_in_toolbox[TOOLS_NUM] = {"Pliers 1", "Cutter", "Pliers 2", "Screw 1", "Screw 2", "Screw 3"};
+String tools_in_toolbox[TOOLS_NUM] = {"Pliers1", "Cutter", "Pliers2", "Screw1", "Screw2", "Screw3"};
 String switchesFirstState[TOOLS_NUM];
 String switchesLastState[TOOLS_NUM];
 CHANGE_IN_TOOLBOX tools_condition[TOOLS_NUM];
 String tools_change_strings[3] = {"UNCHANGED", "BORROWED", "RETURNED"};
+bool need_reconnection = true;
+int reconnection_time_interval = 30000; // half a minute
+int last_reconnection_time;
 
 bool DoorChanged(){
   door_switch.loop(); // MUST call the loop() function first
@@ -194,6 +197,9 @@ void setup()
 
 void loop()
 {
+  if(need_reconnection && (millis() - last_reconnection_time >= reconnection_time_interval) ){
+    NTPsetup();
+  }
   if (!rfid.PICC_IsNewCardPresent()) 
   {
     if (millis() > lastTimeBotRan + botRequestDelay)  

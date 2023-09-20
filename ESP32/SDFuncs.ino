@@ -185,13 +185,16 @@ void FillSDInitially()
   appendFile(SD, "/users.csv", "59 C5 23 A4, Mais Fadila, 1\n");
   writeFile(SD, "/items.csv", "Borrower ID\n");
   appendFile(SD, "/items.csv", "0\n0\n0\n0\n0\n0\n");
-  String log_str = "Initialized on ";
-  char* time_str = GetTimeString();
-  log_str += time_str;
+  String log_str = "Initialized ";
+  char* time_str = "";
+  if(!need_reconnection){
+    char* time_str = GetTimeString();
+    log_str += time_str;
+    free(time_str);
+  }
   log_str += "\n";
   writeFile(SD, "/log.txt", log_str.c_str());
   listDir(SD, "/", 0);
-  free(time_str);
 }
 
 void UpdateItem(int line_number, String uid){
@@ -294,7 +297,10 @@ void ReadItems(int arr[], const String& const_uid) {
 
 void UpdateLog(String& user_name)
 {
-  char* timeString = GetTimeString();
+  char* timeString = "";
+  if(!need_reconnection){
+    timeString = GetTimeString();
+  }
   for (int i = 0 ; i < TOOLS_NUM ; i++)
   {
     if(tools_condition[i] != UNCHANGED) 
@@ -310,8 +316,10 @@ void UpdateLog(String& user_name)
           log_txt += "borrowed by ";
         }
         log_txt += user_name.c_str();
-        log_txt += " on ";
-        log_txt += timeString;
+        if(!need_reconnection){
+          log_txt += " on ";
+          log_txt += timeString;
+        }
         log_txt += "\n";
         appendFile(SD, "/log.txt", log_txt.c_str());
         

@@ -36,10 +36,24 @@ void NTPsetup()
   client.setCACert(TELEGRAM_CERTIFICATE_ROOT); // Add root certificate for api.telegram.org
   int start_time = millis();
   while (WiFi.status() != WL_CONNECTED) {
+    if(millis()>start_time+15000){
+      SetLedColor(RED);
+      display.clearDisplay();
+      display.display();
+      display.setTextColor(WHITE); // or BLACK;
+      display.setTextSize(TEXT_SIZE);
+      display.setCursor(0,0); 
+      display.println(" Wifi couldn't\n connect. Please make sure\n to activate it soon");
+      display.display();
+      need_reconnection = true;
+      last_reconnection_time = millis();
+      return;
+    }
       delay(500);
       Serial.print(".");
   }
   Serial.println(" CONNECTED");
+  need_reconnection = false;
   // Print ESP32 Local IP Address
   Serial.println(WiFi.localIP());
 }

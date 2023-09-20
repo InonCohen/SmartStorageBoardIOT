@@ -104,8 +104,8 @@ UniversalTelegramBot bot(BOTtoken, client);
 int botRequestDelay = 10000;
 unsigned long lastTimeBotRan;
 
-const char* wifi_ssid       = "Inon's";
-const char* wifi_password   = "0502261118Ic";
+const char* wifi_ssid       = "lib-test";
+const char* wifi_password   = "test-3-8";
 
 
 unsigned long startTime; // Variable to store the start time in milliseconds
@@ -122,7 +122,7 @@ String switchesLastState[TOOLS_NUM];
 CHANGE_IN_TOOLBOX tools_condition[TOOLS_NUM];
 String tools_change_strings[3] = {"UNCHANGED", "BORROWED", "RETURNED"};
 bool need_reconnection = true;
-int reconnection_time_interval = 30000; // half a minute
+int reconnection_time_interval = 60000; // a minute
 int last_reconnection_time;
 
 bool DoorChanged(){
@@ -172,7 +172,7 @@ void setup()
   // delay(3000);
   NTPsetup();
   delay(3000);
-  FillSDInitially();
+  // FillSDInitially();
   delay(3000);
   ReadSDInitially();
   Wire1.begin(I2C_SDA_PIN, I2C_SCL_PIN);

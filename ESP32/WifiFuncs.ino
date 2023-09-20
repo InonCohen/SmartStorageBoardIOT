@@ -30,20 +30,29 @@ void NTPsetup()
 
   //connect to WiFi
   Serial.printf("Connecting to %s ", wifi_ssid);
+   SetLedColor(RED);
+    display.clearDisplay();
+    display.display();
+    display.setTextColor(WHITE); // or BLACK;
+    display.setTextSize(TEXT_SIZE);
+    display.setCursor(0,0); 
+    display.println(" Connecting to WiFi");
+    display.display();
   IPAddress dns(8,8,8,8);
   WiFi.mode(WIFI_STA);
   WiFi.begin(wifi_ssid, wifi_password);
   client.setCACert(TELEGRAM_CERTIFICATE_ROOT); // Add root certificate for api.telegram.org
   int start_time = millis();
   while (WiFi.status() != WL_CONNECTED) {
-    if(millis()>start_time+15000){
+    
+    if(millis()>start_time+35000){
       SetLedColor(RED);
       display.clearDisplay();
       display.display();
       display.setTextColor(WHITE); // or BLACK;
       display.setTextSize(TEXT_SIZE);
       display.setCursor(0,0); 
-      display.println(" Wifi couldn't\n connect. Please make sure\n to activate it soon");
+      display.println(" Wifi couldn't\n connect.\n Please make sure\n to activate it soon");
       display.display();
       need_reconnection = true;
       last_reconnection_time = millis();
